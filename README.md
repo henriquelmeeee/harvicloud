@@ -11,8 +11,9 @@ henrique@harvicloud:~$ pip install Flask
 ### Uso
 
 ```
-É autorizado a utilização e modificação dos arquivos deste repositório para uso público e privado, 
-contanto que os créditos ao seu criador estejam explícitos, de preferência expondo seu GitHub pessoal:
+É autorizado a utilização e modificação dos arquivos deste repositório para uso livre, 
+contanto que os créditos ao seu criador estejam explícitos, 
+de preferência expondo seu GitHub pessoal:
 github.com/henriquelmeeee
 ```
 
