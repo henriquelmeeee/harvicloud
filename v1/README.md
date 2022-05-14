@@ -1,16 +1,3 @@
-# harvicloud.com
-
-O Projeto Harvi Cloud consiste em oferecer ao cliente um serviço de hospedagem para bots do Discord, Twitter e WhatsApp. 
-
-# web.harvicloud.com
-
-A Harvi Cloud Web é outro serviço que faz parte da Harvi Cloud, onde você pode hospedar seus próprios sites **only client-side**, como também pode criar sites pré-prontos, usando softwares self-hosted, como a NextCloud, Gitea e WordPress.
-
-------
-Criado em 2022 por [Henrique](https://twitter.com/henriquelmexd), foi um projeto feito com o microframework **Flask** em **Python**. 
-
-Você pode ver uma demonstração do projeto [clicando aqui](https://demo.harvicloud.repl.co/).
-
 ### Dependências
 
 > Para instalar o Flask no Python, execute o seguinte comando:
@@ -38,3 +25,4 @@ github.com/henriquelmeeee
 ### Instalação
 
 Para instalar a Harvi Cloud no seu computador pessoal ou em um serviço de hospedagem especializado, você deve fazer algumas configurações.
+...
