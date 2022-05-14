@@ -8,4 +8,4 @@ A Harvi Cloud Web é outro serviço que faz parte da Harvi Cloud, onde você pod
 
 Criado em 2022 por <a href="github.com/henriquelmeeee">Henrique</a>, foi um projeto feito com o microframework **Flask** em **Python**.
 
-Você pode ver uma demonstração do projeto [https://demo.harvicloud.repl.co/](clicando aqui).<br>Também pode ver o site oficial do projeto [https://try.harvicloud.repl.co/](clicando aqui).
+Você pode ver uma demonstração do projeto [clicando aqui](https://demo.harvicloud.repl.co/).<br>Também pode ver o site oficial do projeto [clicando aqui](https://try.harvicloud.repl.co/).
