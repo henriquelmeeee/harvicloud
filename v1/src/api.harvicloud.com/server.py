@@ -223,11 +223,11 @@ def create_website(id_site):
                     for n in range(0, 7):
                         valor += random.choice(["_", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"])
                     id_container = str(id_container)
-                    os.system(f'mkdir ./v1/containers/data/{id_site}/{id_container + valor}')
+                    os.system(f'mkdir ./v1/containers/web/data/{id_site}/{id_container + valor}')
                     if id_site == 'nextcloud':
-                        os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/data/nextcloud/{id_container + valor}:/var/www/html --memory="110m" -d -p {porta}:80 nextcloud')
+                        os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/web/data/nextcloud/{id_container + valor}:/var/www/html --memory="110m" -d -p {porta}:80 nextcloud')
                     elif id_site == 'gitea':
-                        os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/data/gitea/{id_container + valor}:/data --memory="160m" -d -p {porta}:3000 gitea/gitea')
+                        os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/web/data/gitea/{id_container + valor}:/data --memory="160m" -d -p {porta}:3000 gitea/gitea')
                     id_container = subprocess.check_output(f"docker ps -aqf \"name={id_container + valor}\"", shell=True)
                     id_container = str(id_container).replace('b', '').replace('\\n', '').replace('\'', '')
                     return id_container
