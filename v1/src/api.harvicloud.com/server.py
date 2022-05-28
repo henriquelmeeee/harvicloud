@@ -17,7 +17,6 @@ static_dir = os.path.abspath('.')
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.config['SECRET_KEY'] = "secret_key_here"
 
-
 import mysql.connector
 from mysql.connector import Error
 cursor = None
@@ -35,11 +34,9 @@ cursor.execute("CREATE TABLE IF NOT EXISTS users (user text, password text, toke
 cursor.execute("CREATE TABLE IF NOT EXISTS gitea (user text, id text, porta text, name text, online text)")
 cursor.execute("CREATE TABLE IF NOT EXISTS nextcloud (user text, id text, porta text, name text, online text)")
 
-
 def turn_on_containers():
     pass
-    # ligar os containers ao iniciar servidor (ligar apenas aqueles que no banco de dados
-    # tem como "online" = true)
+    # Em produção...
 turn_on_containers()
 
 def is_alphanum(text):
