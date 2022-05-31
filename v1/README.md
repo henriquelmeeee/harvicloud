@@ -17,7 +17,7 @@ Para instalar a Harvi Cloud no seu computador pessoal ou em um serviço de hospe
 ```console
 root@server:~# mkdir /app
 root@server:~# cd /app
-root@server:/app# gh repo clone henriquelmeeee/harvicloud && rm -rf ./src/v2/ && mv ./src/* ..
+root@server:/app# gh repo clone henriquelmeeee/harvicloud && rm -rf ./v2/ ./v1/src/README.md README.md && mv ./v1/src/* ../..
 ```
 
 Após isso, você deve executar ```requirements.sh``` para baixar todas as dependências do projeto. Observe que o processo de instalação poderá demorar mais, em especial caso você esteja baixando as dependências da **API**.
