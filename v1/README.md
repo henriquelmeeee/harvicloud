@@ -1,18 +1,3 @@
-### Dependências
-
-> Para instalar o Flask no Python, execute o seguinte comando:
-
-```console
-henrique@harvicloud:~$ pip install Flask
-```
-
-Você pode instalar todas as dependências de uma vez utilizando o arquivo `requirements.sh`:
-
-```console
-henrique@harvicloud:~$ chmod +x requirements.sh
-henrique@harvicloud:~$ ./requirements.sh
-```
-
 ### Uso
 
 ```
