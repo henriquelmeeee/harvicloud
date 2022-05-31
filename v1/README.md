@@ -24,7 +24,7 @@ root@server:/app# rm -rf ./v2/ ./v1/src/README.md README.md && mv ./v1/src/* .
 Após isso, você deve executar ```requirements.sh``` para baixar todas as dependências do projeto. Observe que o processo de instalação poderá demorar mais, em especial caso você esteja baixando as dependências da **API**.
 
 ```console
-root@server:/app# chmod +x ./requirements.sh
+root@server:/app# chmod +x ./v1/requirements.sh
 root@server:/app# ./requirements.sh
 ```
 
