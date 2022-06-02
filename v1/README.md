@@ -38,3 +38,5 @@ DOCS_DOMAIN: 'http://docs.harvicloud.com/' # Domínio/IP em que a documentação
 API_DOMAIN: 'http://api.harvicloud.com/' # Domínio/IP em que a API está registrada
 ...
 ```
+
+Após isso, **Harvi Cloud** estará pronto para uso. Você pode editar livremente o código fonte, **sempre lembrando de deixar os créditos em algum lugar da página inicial do site**.
