@@ -1,1 +1,1 @@
-> Arquivos dos bots nos containers docker estarão aqui.
+Arquivos dos bots nos containers docker estarão aqui.
