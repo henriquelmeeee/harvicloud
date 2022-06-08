@@ -5,32 +5,41 @@ abril de 2022
 ---------------------------------------------
 """
 
+
 from flask import Flask, render_template, url_for, redirect, request, session, jsonify
 from flaskext.mysql import MySQL
-import os, random
+import os, random, subprocess
 from datetime import datetime
-import subprocess
+
+from config import *
+os.system('rm -rf ./__pycache__')
 
 template_dir = os.path.abspath('.')
 static_dir = os.path.abspath('.')
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
-app.config['SECRET_KEY'] = "YAS5453278FDSHDWE456"
+app.config['SECRET_KEY'] = APP_SECRET_KEY
+sql = True
+try:
+    import mysql.connector
+    from mysql.connector import Error
+    mysql = MySQL()
+    app.config['MYSQL_DATABASE_USER'] = DB_USER
+    app.config['MYSQL_DATABASE_PASSWORD'] = DB_PASSWORD
+    app.config['MYSQL_DATABASE_DB'] = DB_NAME
+    app.config['MYSQL_DATABASE_HOST'] = DB_HOST
+    mysql.init_app(app)
 
-import mysql.connector
-from mysql.connector import Error
-mysql = MySQL()
-app.config['MYSQL_DATABASE_USER'] = 'user'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'password'
-app.config['MYSQL_DATABASE_DB'] = 'db'
-app.config['MYSQL_DATABASE_HOST'] = 'host'
-mysql.init_app(app)
+    conn = mysql.connect()
+    cursor = conn.cursor()
 
-conn = mysql.connect()
-cursor = conn.cursor()
+    cursor.execute("CREATE TABLE IF NOT EXISTS users (user text, password text, token text, plano text);")
+    cursor.execute("CREATE TABLE IF NOT EXISTS gitea (user text, id text, porta text, name text, online text)")
+    cursor.execute("CREATE TABLE IF NOT EXISTS nextcloud (user text, id text, porta text, name text, online text)")
+    cursor.execute("CREATE TABLE IF NOT EXISTS bots (user text, id text, name text, main_file text, online text)")
+    cursor.execute("CREATE TABLE IF NOT EXISTS valid_tokens (token text, user text)")
 
-cursor.execute("CREATE TABLE IF NOT EXISTS users (user text, password text, token text, plano text);")
-cursor.execute("CREATE TABLE IF NOT EXISTS gitea (user text, id text, porta text, name text, online text)")
-cursor.execute("CREATE TABLE IF NOT EXISTS nextcloud (user text, id text, porta text, name text, online text)")
+except Exception as error:
+    sql = False; print('---\nErro SQL: ' + str(error) + '\n---')
 
 def is_alphanum(text):
     is_alphanum = True
@@ -59,33 +68,32 @@ def generate_nonce(caracteres):
 
 @app.route('/')
 def home():
-    return redirect(url_for('explore'))
+    return redirect('http://harvicloud.com/')
 
-@app.route('/explore/')
-def explore():
-    return render_template('explore.html')
-
-@app.route('/v1/auth/login/', methods=["POST"])
+@app.route('/v1/auth/login/', methods=["POST", "GET"])
 def autenticar():
-    conn = mysql.connect(); cursor = conn.cursor()
-    if not "user" in session:
-        content = request.json; user=str(content["user"]); password=str(content["password"])
-        if is_alphanum(user) and is_alphanum(password):
-            cursor.execute(f"SELECT token FROM users WHERE user='{user}' AND password='{password}'")
-            token = cursor.fetchall()
-            if str(token) == '()':
-                return 401
+    if sql:
+        conn = mysql.connect(); cursor = conn.cursor()
+        if not "user" in session:
+            content = request.json; user=str(content["user"]); password=str(content["password"])
+            if is_alphanum(user) and is_alphanum(password):
+                cursor.execute(f"SELECT token FROM users WHERE user='{user}' AND password='{password}'")
+                token = cursor.fetchall()
+                if str(token) == '()':
+                    return 401
+                else:
+                    session["user"] = user
+                    return 200
             else:
-                session["user"] = user
-                return 200
+                return 202
         else:
-            return 202
+            return False
     else:
-        return False
+        return jsonify({"error": "the server was unable to communicate with the database"}), 500
 
 
 def discord_send_log(mensagem):
-    # ...
+    # ainda não concluído
     today = datetime.now()
     file = open(f'./v1/logs/{today.year}/{today.month}/discord/{str(today.day)}.txt', "a")
     file.write(f'{mensagem}')
@@ -135,13 +143,18 @@ def logs():
 
 import secrets
 @app.route('/v1/auth/token/', methods=['GET'])
-def gerar_token():
-    if not checar_autenticacao():
-        return redirect(f'http://harvicloud.com/login?redirect=/token')
+def generate_token():
+    if sql:
+        conn = mysql.connect(); cursor = conn.cursor()
+        if not "user" in session:
+            return redirect(f'http://harvicloud.com/login?redirect=/token')
+        else:
+            token = str(secrets.token_hex())
+            cursor.execute(f"INSERT INTO valid_tokens VALUES ('{token}', '{str(session['user'])}')")
+            conn.commit()
+            return token
     else:
-        # Pedir para colocar a senha antes de mandar o token
-        token = str(secrets.token_hex())
-        return token
+        return jsonify({"error": "the server was unable to communicate with the database"}), 500
 
 # Sistema de validação de Token
 # Cada usuário tem um token único, e este sistema é usado pelo bot do Discord
@@ -152,18 +165,21 @@ def gerar_token():
 
 @app.route('/v1/auth/token/validate', methods=['POST'])
 def validar_token():
-    if request.method == "POST":
-        content = request.json
-        if not str(content["secret"]) == 'ASKOGSDITR574569JFG6':
-            return jsonify({"error": "not authorized"}), 401
-        else:
-            token = str(content["token"])
-            cursor.execute("SELECT token FROM users WHERE token='"+str(token)+"';")
-            checar = cursor.fetchall()
-            if str(checar) == '()':
-                return jsonify({"error": "invalid token"}), 401
+    if sql:
+        if request.method == "POST":
+            content = request.json
+            if not str(content["secret"]) == 'ASKOGSDITR574569JFG6':
+                return jsonify({"error": "not authorized"}), 401
             else:
-                return jsonify({"status": "request successfully accepted"}), 200
+                token = str(content["token"])
+                cursor.execute("SELECT token FROM users WHERE token='"+str(token)+"';")
+                checar = cursor.fetchall()
+                if str(checar) == '()':
+                    return jsonify({"error": "invalid token"}), 401
+                else:
+                    return jsonify({"status": "request successfully accepted"}), 200
+    else:
+        return jsonify({"error": "the server was unable to communicate with the database"}), 500
 
 ###
 
@@ -171,106 +187,121 @@ websites = ['gitea', 'nextcloud', 'wordpress']
 
 @app.route('/v1/web/create/', methods=["POST"])
 def create_website():
-    content = request.json
-    conn = mysql.connect(); cursor = conn.cursor()
-    session["user"] = 'a'
-    id_site = content["id"]
-    if id_site == 'nextcloud' or id_site == 'gitea':
-        website_name = content['website_name']
-        if website_name is None or len(website_name) > 18 or website_name == '':
-            return jsonify({"error": "invalid website name"})
-        else:
-            if is_alphanum(str(website_name)):
-                valor = '()'
-                for s in websites:
-                    cursor.execute(f"SELECT name FROM {s} WHERE name='{str(website_name)}'")
-                    valor = str(cursor.fetchall())
-                    if not str(valor) == '()':
-                        break
-                if valor == '()':
-                    if "user" in session:
-                        id_container = 0; porta = 0
-                        while True:
-                            ids = ['gitea', 'nextcloud']
-                            porta = random.randint(81, 60000)
-                            n = 0
-                            gitea_sites = []; nextcloud_sites = []
-                            for name in ids:
-                                n += 1
-                                if n == 1500:
-                                    return jsonify({"error": "the back end did not find a valid port for your application after several attempts, please try again"}), 500
-                                else:
-                                    cursor.execute(f"SELECT porta FROM {name} WHERE porta='{porta}' AND user='"+str(session["user"])+"';")
-                                    valor = cursor.fetchall()
-                                    if name == 'gitea':
-                                        gitea_sites = valor
-                                    elif name == 'nextcloud':
-                                        nextcloud_sites = valor
-                                    if str(valor) == '()' and n == len(ids):
-                                        break
-                                    else:
-                                        continue
-                            cursor.execute(f"SELECT plano FROM users WHERE user='{str(session['user'])}'")
-                            plano = cursor.fetchall()
-                            total = len(gitea_sites) + len(nextcloud_sites)
-                            if 'free' in plano and total > 0 or 'profissional' in plano and total > 1 or 'empreendedor' in plano and total > 4:
-                                return jsonify({"error": "website limit reached"}), 403
-                            break
-                        while True:
-                            id_container = random.randint(10, 100000)
-                            cursor.execute(f"SELECT id FROM {id_site} WHERE id='{id_container}' AND user='"+str(session["user"])+"';")
-                            valor = cursor.fetchall()
-                            if str(valor) == '()' and id_container != 443 and id_container != 3306:
-                                break
-                            else:
-                                continue
-                        valor = '-'
-                        for n in range(0, 7):
-                            valor += random.choice(["_", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"])
-                        id_container = str(id_container)
-                        os.system(f'mkdir ./v1/containers/web/data/{id_site}/{id_container + valor}')
-                        if id_site == 'nextcloud':
-                            os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/web/data/nextcloud/{id_container + valor}:/var/www/html --memory="110m" --memory-reservation="100m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d -p {porta}:80 nextcloud')
-                        elif id_site == 'gitea':
-                            os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/web/data/gitea/{id_container + valor}:/data --memory="160m" --memory-reservation="150m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d -p {porta}:3000 gitea/gitea')
-                        id_container = subprocess.check_output(f"docker ps -aqf \"name={id_container + valor}\"", shell=True)
-                        id_container = str(id_container).replace('b', '').replace('\\n', '').replace('\'', '')
-                        cursor.execute(f"INSERT INTO {id_site} VALUES ('{str(session['user'])}', '{id_container}', '{porta}', '{website_name}', 'true')")
-                        conn.commit()
-                        return jsonify({"status": "request accepted successfully"})
-                    else:
-                        return redirect('http://harvicloud.com/login/')
-                else:
-                    return jsonify({"error": "there is already a website with this name"}), 406
+    if sql:
+        content = request.json
+        conn = mysql.connect(); cursor = conn.cursor()
+        session["user"] = 'a'
+        id_site = content["id"]
+        if id_site == 'nextcloud' or id_site == 'gitea':
+            website_name = content['website_name']
+            if website_name is None or len(website_name) > 18 or website_name == '':
+                return jsonify({"error": "invalid website name"})
             else:
-                return 'Parâmetro inválido', 406
+                if is_alphanum(str(website_name)):
+                    valor = '()'
+                    for s in websites:
+                        cursor.execute(f"SELECT name FROM {s} WHERE name='{str(website_name)}'")
+                        valor = str(cursor.fetchall())
+                        if not str(valor) == '()':
+                            break
+                    if valor == '()':
+                        if "user" in session:
+                            id_container = 0; porta = 0
+                            while True:
+                                ids = ['gitea', 'nextcloud']
+                                porta = random.randint(81, 60000)
+                                n = 0
+                                gitea_sites = []; nextcloud_sites = []
+                                for name in ids:
+                                    n += 1
+                                    if n == 1500:
+                                        return jsonify({"error": "the back end did not find a valid port for your application after several attempts, please try again"}), 500
+                                    else:
+                                        cursor.execute(f"SELECT porta FROM {name} WHERE porta='{porta}' AND user='"+str(session["user"])+"';")
+                                        valor = cursor.fetchall()
+                                        if name == 'gitea':
+                                            gitea_sites = valor
+                                        elif name == 'nextcloud':
+                                            nextcloud_sites = valor
+                                        if str(valor) == '()' and n == len(ids):
+                                            break
+                                        else:
+                                            continue
+                                cursor.execute(f"SELECT plano FROM users WHERE user='{str(session['user'])}'")
+                                plano = cursor.fetchall()
+                                total = len(gitea_sites) + len(nextcloud_sites)
+                                if 'free' in plano and total > 0 or 'profissional' in plano and total > 1 or 'empreendedor' in plano and total > 4:
+                                    return jsonify({"error": "website limit reached"}), 403
+                                break
+                            while True:
+                                id_container = random.randint(10, 100000)
+                                cursor.execute(f"SELECT id FROM {id_site} WHERE id='{id_container}' AND user='"+str(session["user"])+"';")
+                                valor = cursor.fetchall()
+                                if str(valor) == '()' and id_container != 443 and id_container != 3306:
+                                    break
+                                else:
+                                    continue
+                            valor = '-'
+                            for n in range(0, 7):
+                                valor += random.choice(["_", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"])
+                            id_container = str(id_container)
+                            os.system(f'mkdir ./v1/containers/web/data/{id_site}/{id_container + valor}')
+                            if id_site == 'nextcloud':
+                                os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/web/data/nextcloud/{id_container + valor}:/var/www/html --memory="110m" --memory-reservation="100m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d -p {porta}:80 nextcloud')
+                            elif id_site == 'gitea':
+                                os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/web/data/gitea/{id_container + valor}:/data --memory="160m" --memory-reservation="150m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d -p {porta}:3000 gitea/gitea')
+                            id_container = subprocess.check_output(f"docker ps -aqf \"name={id_container + valor}\"", shell=True)
+                            id_container = str(id_container).replace('b', '').replace('\\n', '').replace('\'', '')
+                            cursor.execute(f"INSERT INTO {id_site} VALUES ('{str(session['user'])}', '{id_container}', '{porta}', '{website_name}', 'true')")
+                            conn.commit()
+                            return jsonify({"status": "request accepted successfully"})
+                        else:
+                            return redirect('http://harvicloud.com/login/')
+                    else:
+                        return jsonify({"error": "there is already a website with this name"}), 406
+                else:
+                    return 'Parâmetro inválido', 406
+        else:
+            return jsonify({"error": "invalid website type"}), 400
     else:
-        return jsonify({"error": "invalid website type"})
+        return jsonify({"error": "the server was unable to communicate with the database"}), 500
 
 ###
 
 @app.route('/v1/bot/create/', methods=["POST"])
 def create_bot():
-    content = request.json
-    conn = mysql.connect(); cursor = conn.cursor()
+    if sql:
+        content = request.json
+        conn = mysql.connect(); cursor = conn.cursor()
+    else:
+        return jsonify({"error": "the server was unable to communicate with the database"}), 500
 
 def validate_file(filename):
     filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/v1/bot/upload-files/', methods=["POST"])
 def bot_upload_files():
-    if 'file' not in request.files:
-        return jsonify({"error": "no files were sent"})
-    else:
-        f = request.files["file"]
-        if f.filename == '':
-            return jsonify({"error": "invalid file name"})
+    content = request.json
+    if sql:
+        if "id" in content:
+            if 'file' not in request.files:
+                return jsonify({"error": "no files were sent"}), 400
+            else:
+                cursor.execute(f"SELECT id FROM bots WHERE id='{content['id']}'")
+                if len(cursor.fetchall()) == 0:
+                    return jsonify({"error": "container ID not found in database"})
+                else:
+                    f = request.files["file"]
+                    if f.filename == '':
+                        return jsonify({"error": "invalid file name"}), 400
+                    else:
+                        if f and allowed_file(f.filename):
+                            filename = secure_filename(f.filename)
+                            f.save(os.path.join(f'./v1/containers/discord/bot/data/{content["id"]}/', name=filename))
+                            return jsonify({"status": "file saved successfully"})
         else:
-            if f and allowed_file(f.filename):
-                filename = secure_filename(f.filename)
-                # ...
-                f.save(os.path.join(f'./v1/containers/discord/bot/data/{directory}/', name=filename))
-                return jsonify({"status": "file saved successfully"})
+            return jsonify({"error": "container ID not specified"})
+    else:
+        return jsonify({"error": "the server was unable to communicate with the database"}), 500
 
-
-app.run(host='0.0.0.0', port=80, debug=True)
+app.run(host='0.0.0.0', port=34, debug=True)
