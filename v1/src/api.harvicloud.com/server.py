@@ -5,7 +5,6 @@ abril de 2022
 ---------------------------------------------
 """
 
-
 from flask import Flask, render_template, url_for, redirect, request, session, jsonify
 from flaskext.mysql import MySQL
 import os, random, subprocess
