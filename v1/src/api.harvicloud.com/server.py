@@ -91,53 +91,6 @@ def autenticar():
     else:
         return jsonify({"error": "the server was unable to communicate with the database"}), 500
 
-
-def discord_send_log(mensagem):
-    # ainda não concluído
-    today = datetime.now()
-    file = open(f'./v1/logs/{today.year}/{today.month}/discord/{str(today.day)}.txt', "a")
-    file.write(f'{mensagem}')
-    file.write('\n')
-    file.close()
-
-# Sistema de envio de logs do bot do Discord
-# a key secret é a senha que o bot do Discord usa para se identificar e poder enviar o post
-# a key mensagem é a mensagem da log
-
-@app.route('/v1/logs/discord/send', methods=["POST"])
-def send_log():
-    if request.method == 'POST':
-        content = request.json
-        if str(content["secret"]) == 'ASKOGSDITR574569JFG6':
-            discord_send_log(
-                mensagem=str(content["mensagem"]), 
-                )
-            return ''
-        else:
-            return jsonify({"error": "not authorized"}), 401
-
-
-os.system('rm ./v1/discord/bot/logs/logs.txt'); os.system('touch ./v1/discord/bot/logs/logs.txt')
-@app.route('/v1/discord/get/logs/', methods=["GET", "POST"])
-def logs():
-    if request.method == 'POST':
-        content = request.json
-        if not str(content["secret"]) == 'ASKOGSDITR574569JFG6':
-            return jsonify({"error": "not authorized"}), 401
-        else:
-            logs = str(content["logs"])
-            f = open('./v1/discord/bot/logs/logs.txt', "a")
-            f.write(logs + '\n')
-            f.close()
-            return jsonify({"status": "logs sent successfully"}), 200
-    else:
-        if "user" in session and not str(session["user"]) == 'henrique': 
-            return jsonify({"error": "not authorized"}), 403
-        elif not "user" in session:
-            return jsonify({"error": "not authorized"}), 401
-        else:
-            return render_template('./v1/discord/bot/logs/index.html', log="a")
-
 # Aqui o usuário poderá pegar seu token de autenticação
 # é usado para se autenticar no bot do Discord
 
@@ -155,32 +108,7 @@ def generate_token():
             return token
     else:
         return jsonify({"error": "the server was unable to communicate with the database"}), 500
-
-# Sistema de validação de Token
-# Cada usuário tem um token único, e este sistema é usado pelo bot do Discord
-# para validar um token dado pelo usuário
-# ele cai em um JSON com 2 keys: secret e token
-# a secret é uma key com uma senha para poder usar este sistema
-# e o token é onde coloca o valor do token
-
-@app.route('/v1/auth/token/validate', methods=['POST'])
-def validar_token():
-    if sql:
-        if request.method == "POST":
-            content = request.json
-            if not str(content["secret"]) == 'ASKOGSDITR574569JFG6':
-                return jsonify({"error": "not authorized"}), 401
-            else:
-                token = str(content["token"])
-                cursor.execute("SELECT token FROM users WHERE token='"+str(token)+"';")
-                checar = cursor.fetchall()
-                if str(checar) == '()':
-                    return jsonify({"error": "invalid token"}), 401
-                else:
-                    return jsonify({"status": "request successfully accepted"}), 200
-    else:
-        return jsonify({"error": "the server was unable to communicate with the database"}), 500
-
+    
 ###
 
 websites = ['gitea', 'nextcloud', 'wordpress']
