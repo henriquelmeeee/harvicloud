@@ -7,7 +7,7 @@ abril de 2022
 
 from flask import Flask, render_template, url_for, redirect, request, session, jsonify
 from flaskext.mysql import MySQL
-import os, random, subprocess
+import os, random, subprocess, platform
 from datetime import datetime
 
 from config import *
@@ -65,9 +65,37 @@ def generate_nonce(caracteres):
         nonce += valor
     return nonce
 
+def capture_numbers_of_users():
+    if sql:
+        cursor.execute("SELECT user FROM users"); v = cursor.fetchall(); n = 0
+        while True:
+            try:
+                cursor.fetchall()[n]
+            except:
+                return n 
+            n += 1
+    return 'mysql is off'
+
+def capture_mysql_version():
+    cursor.execute("SELECT VERSION();")
+    mysql_version = str(cursor.fetchall()[0]).replace('\'', '').replace(',)', '').replace('(', '')
+    return mysql_version
+
 @app.route('/')
 def home():
     return redirect('http://harvicloud.com/')
+
+@app.route('/v1/status/', methods=["GET"])
+def server_status():
+    return jsonify(
+        {
+            "mysql": "healthy" if sql else "off",
+            "mysql-version": capture_mysql_version() if sql else "mysql is off",
+            "registered-users": capture_numbers_of_users(),
+            "online-time": str(datetime.now() - started),
+            "os": str(platform.system() + '-' + platform.release()),
+        }
+    )
 
 @app.route('/v1/auth/login/', methods=["POST", "GET"])
 def autenticar():
@@ -248,4 +276,5 @@ def bot_upload_files():
     else:
         return jsonify({"error": "the server was unable to communicate with the database"}), 500
 
+started = datetime.now()
 app.run(host='0.0.0.0', port=80)
