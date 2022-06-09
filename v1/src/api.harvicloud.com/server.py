@@ -60,7 +60,7 @@ def generate_nonce(caracteres):
     nonce = ''
     for s in range (0, caracteres):
         valor = random.choice(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
-        if random.randint(1, 5) == 1:
+        if random.randint(1, 3) == 1:
             valor = valor.upper()
         nonce += valor
     return nonce
@@ -93,7 +93,7 @@ def server_status():
             "mysql-version": capture_mysql_version() if sql else "mysql is off",
             "registered-users": capture_number_of_users(),
             "online-time": str(datetime.now() - started),
-            "os": str(platform.system() + '-' + platform.release()),
+            "os": str(platform.system() + '-' + platform.release())
         }
     )
 
@@ -107,14 +107,14 @@ def autenticar():
                 cursor.execute(f"SELECT token FROM users WHERE user='{user}' AND password='{password}'")
                 token = cursor.fetchall()
                 if str(token) == '()':
-                    return 401
+                    return jsonify({"error": "invalid credentials"}), 401
                 else:
                     session["user"] = user
-                    return 200
+                    return jsonify({"status": "success", "message": "successfully authenticated"})
             else:
-                return 202
+                return jsonify({"error": "credentials must be alphanumeric"}), 202
         else:
-            return False
+            return jsonify({"error": "you are already authenticated"})
     else:
         return jsonify({"error": "the server was unable to communicate with the database"}), 500
 
@@ -173,28 +173,27 @@ def check_ports():
     return porta
 
 def check_id(id_site):
+    nonce = '-'
+    for n in range(0, 7):
+        nonce += random.choice(["_", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"])
     while True:
         id_container = random.randint(10, 100000)
-        cursor.execute(f"SELECT id FROM {id_site} WHERE id='{id_container}' AND user='"+str(session["user"])+"';")
+        cursor.execute(f"SELECT id FROM {id_site} WHERE id='{id_container + nonce}'")
         valor = cursor.fetchall()
         if str(valor) == '()':
-            return id_container
+            return id_container + nonce
         else:
             continue
     return False
 
 def create_website_commands(id_site, id_container, porta, website_name):
     try:
-        valor = '-'
-        for n in range(0, 7):
-            valor += random.choice(["_", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"])
-            id_container = str(id_container)
-            os.system(f'mkdir ./v1/containers/web/data/{id_site}/{id_container + valor}')
-            if id_site == 'nextcloud':
-                os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/web/data/nextcloud/{id_container + valor}:/var/www/html --memory="110m" --memory-reservation="100m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d -p {porta}:80 nextcloud')
-            elif id_site == 'wordpress':
-                os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/web/data/wordpress/{id_container + valor}:/data --memory="160m" --memory-reservation="150m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d -p {porta}:3000 wordpress')
-        id_container = subprocess.check_output(f"docker ps -aqf \"name={id_container + valor}\"", shell=True)
+        os.system(f'mkdir ./v1/containers/web/data/{id_site}/{id_container + valor}')
+        if id_site == 'nextcloud':
+            os.system(f'docker container run --name {id_container} -v {os.getcwd()}/v1/containers/web/data/nextcloud/{id_container + valor}:/var/www/html --memory="110m" --memory-reservation="100m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d -p {porta}:80 nextcloud')
+        elif id_site == 'wordpress':
+            os.system(f'docker container run --name {id_container} -v {os.getcwd()}/v1/containers/web/data/wordpress/{id_container + valor}:/data --memory="160m" --memory-reservation="150m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d -p {porta}:3000 wordpress')
+        id_container = subprocess.check_output(f"docker ps -aqf \"name={id_container}\"", shell=True)
         id_container = str(id_container).replace('b', '').replace('\\n', '').replace('\'', '')
         cursor.execute(f"INSERT INTO {id_site} VALUES ('{str(session['user'])}', '{id_container}', '{porta}', '{website_name}', 'true')")
         conn.commit()
@@ -204,6 +203,8 @@ def create_website_commands(id_site, id_container, porta, website_name):
 
 @app.route('/v1/web/create/', methods=["POST"])
 def create_website():
+    if not "user" in session:
+        return jsonify({"error": "you need to authenticate"}), 401
     if sql:
         content = request.json
         conn = mysql.connect(); cursor = conn.cursor()
@@ -232,7 +233,7 @@ def create_website():
                     else:
                         return jsonify({"error": "there is already a website with this name"}), 406
                 else:
-                    return 'Parâmetro inválido', 406
+                    return jsonify({"error": "invalid site name, it needs to be alphanumeric"}), 406
         else:
             return jsonify({"error": "invalid website type"}), 400
     else:
@@ -240,11 +241,51 @@ def create_website():
 
 ###
 
+def check_bot_name(bot_name):
+    cursor.execute(f"SELECT name FROM bots WHERE name='{bot_name}'")
+    if str(cursor.fetchall()) == '()':
+        return True
+    return False
+
+def check_user_bot_create():
+    cursor.execute(f"SELECT plano FROM users WHERE user='{session['user']}'")
+    plano = cursor.fetchall()[0]; bots = 0
+    cursor.execute(f"SELECT name FROM bots WHERE user='{session['user']}'")
+    while True:
+        try:
+            cursor.fetchall()[bots]
+        except:
+            break
+        else:
+            bots += 1
+    if 'free' in plano and bots > 0 or 'profissional' in plano and bots > 1 or 'empreendedor' in plano and bots > 4:
+        return False
+    return True
+
 @app.route('/v1/bot/create/', methods=["POST"])
 def create_bot():
     if sql:
         content = request.json
         conn = mysql.connect(); cursor = conn.cursor()
+        bot_name = content["bot_name"]
+        main_file = content["main_file"]
+        if bot_name is None or main_file is None:
+            return jsonify({"error": "bad request"}), 400
+        if "user" in session:
+            if is_alphanum(bot_name) and check_bot_name(bot_name):
+                if check_user_bot_create():
+                    os.system(f'docker container run --name bot_{bot_name} -v {os.getcwd()}/v1/containers/bot/data/{bot_name}/:/data --memory="160m" --memory-reservation="150m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d ubuntu')
+                    id_container = subprocess.check_output(f"docker ps -aqf \"name={bot_name}\"", shell=True)
+                    id_container = str(id_container).replace('b', '').replace('\\n', '').replace('\'', '')
+                    cursor.execute(f"INSERT INTO bots VALUES ('{str(session['user'])}', '{id_container}', '{bot_name}', '{main_file}', 'true')")
+                    conn.commit()
+                    return jsonify({"status": "bot container created successfully"})
+                else:
+                    return jsonify({"error": "bot limit reached"}), 403
+            else:
+                return jsonify({"error": "invalid bot name"})
+        else:
+            return jsonify({"error": "you need to authenticate"}), 401
     else:
         return jsonify({"error": "the server was unable to communicate with the database"}), 500
 
