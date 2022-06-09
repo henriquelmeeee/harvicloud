@@ -46,9 +46,13 @@ def is_alphanum(text):
 def home():
     return render_template('./create.html')
 
-@app.route('/create/gitea/')
+@app.route('/create/wordpress/')
 def create_gitea():
-    return render_template('./static/gitea/form.html')
+    return render_template('./static/wordpress/index.html')
+
+@app.route('/create/nextcloud/')
+def create_gitea():
+    return render_template('./static/nextcloud/index.html')
 
 @app.route('/s/<site_name>/', methods=["GET"])
 def view_website(site_name):
@@ -77,7 +81,7 @@ def view_website(site_name):
                         valor = str(valor[0]).replace(')', '').replace('(', '').replace('\'', '').replace(',', '')
                         os.system(f"docker container start {valor}")
                         time.sleep(5)
-            return render_template('./static/websee/index.html', porta=porta)
+            return render_template('./static/see_website.html', porta=porta)
         else:
             return jsonify({"error": "website not found"}), 404
     else:
