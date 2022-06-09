@@ -65,7 +65,7 @@ def generate_nonce(caracteres):
         nonce += valor
     return nonce
 
-def capture_numbers_of_users():
+def capture_number_of_users():
     if sql:
         cursor.execute("SELECT user FROM users"); v = cursor.fetchall(); n = 0
         while True:
@@ -91,7 +91,7 @@ def server_status():
         {
             "mysql": "healthy" if sql else "off",
             "mysql-version": capture_mysql_version() if sql else "mysql is off",
-            "registered-users": capture_numbers_of_users(),
+            "registered-users": capture_number_of_users(),
             "online-time": str(datetime.now() - started),
             "os": str(platform.system() + '-' + platform.release()),
         }
