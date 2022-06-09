@@ -1,3 +1,6 @@
+> :warning: **Aviso**: O projeto ainda está em **desenvolvimento**.
+Você pode saber o que está sendo desenvolvido [clicando aqui](https://harvicloud.repl.co/dev/).
+
 ### Uso
 
 ```
