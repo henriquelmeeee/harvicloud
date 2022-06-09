@@ -2,7 +2,7 @@
 O Projeto Harvi Cloud consiste em oferecer ao cliente um serviço de hospedagem para bots do Discord, Twitter e WhatsApp.
 
 ## web.harvicloud.com
-A Harvi Cloud Web é outro serviço que faz parte da Harvi Cloud, onde você pode hospedar seus próprios sites **only client-side**, como também pode criar sites pré-prontos, usando softwares self-hosted, como a NextCloud, Gitea e WordPress.
+A Harvi Cloud Web é outro serviço que faz parte da Harvi Cloud, onde você pode hospedar seus próprios sites **only client-side**, como também pode criar sites pré-prontos, usando softwares self-hosted, como o NextCloud e o WordPress.
 
 ---
 
