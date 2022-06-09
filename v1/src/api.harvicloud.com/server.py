@@ -140,7 +140,39 @@ def check_ports():
     total = len(gitea_sites) + len(nextcloud_sites)
     if 'free' in plano and total > 0 or 'profissional' in plano and total > 1 or 'empreendedor' in plano and total > 4:
         return '2'
+    if porta == '443' or porta == '80' or porta == '3306':
+        return '1'
     return porta
+
+def check_id(id_site):
+    while True:
+        id_container = random.randint(10, 100000)
+        cursor.execute(f"SELECT id FROM {id_site} WHERE id='{id_container}' AND user='"+str(session["user"])+"';")
+        valor = cursor.fetchall()
+        if str(valor) == '()':
+            return id_container
+        else:
+            continue
+    return False
+
+def create_website_commands(id_site, id_container, porta, website_name):
+    try:
+        valor = '-'
+        for n in range(0, 7):
+            valor += random.choice(["_", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"])
+            id_container = str(id_container)
+            os.system(f'mkdir ./v1/containers/web/data/{id_site}/{id_container + valor}')
+            if id_site == 'nextcloud':
+                os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/web/data/nextcloud/{id_container + valor}:/var/www/html --memory="110m" --memory-reservation="100m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d -p {porta}:80 nextcloud')
+            elif id_site == 'wordpress':
+                os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/web/data/wordpress/{id_container + valor}:/data --memory="160m" --memory-reservation="150m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d -p {porta}:3000 wordpress')
+        id_container = subprocess.check_output(f"docker ps -aqf \"name={id_container + valor}\"", shell=True)
+        id_container = str(id_container).replace('b', '').replace('\\n', '').replace('\'', '')
+        cursor.execute(f"INSERT INTO {id_site} VALUES ('{str(session['user'])}', '{id_container}', '{porta}', '{website_name}', 'true')")
+        conn.commit()
+        return True
+    except:
+        return False
 
 @app.route('/v1/web/create/', methods=["POST"])
 def create_website():
@@ -156,30 +188,12 @@ def create_website():
                 if is_alphanum(str(website_name)):
                     if check_website_name(websites=websites, website_name=website_name):
                         if "user" in session:
-                            id_container = 0; porta = check_ports()
-                            if not porta == '1' and not porta == '2':
-                                while True:
-                                    id_container = random.randint(10, 100000)
-                                    cursor.execute(f"SELECT id FROM {id_site} WHERE id='{id_container}' AND user='"+str(session["user"])+"';")
-                                    valor = cursor.fetchall()
-                                    if str(valor) == '()' and id_container != 443 and id_container != 3306:
-                                        break
-                                    else:
-                                        continue
-                                valor = '-'
-                                for n in range(0, 7):
-                                    valor += random.choice(["_", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"])
-                                id_container = str(id_container)
-                                os.system(f'mkdir ./v1/containers/web/data/{id_site}/{id_container + valor}')
-                                if id_site == 'nextcloud':
-                                    os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/web/data/nextcloud/{id_container + valor}:/var/www/html --memory="110m" --memory-reservation="100m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d -p {porta}:80 nextcloud')
-                                elif id_site == 'wordpress':
-                                    os.system(f'docker container run --name {id_container + valor} -v {os.getcwd()}/v1/containers/web/data/wordpress/{id_container + valor}:/data --memory="160m" --memory-reservation="150m" --memory-swap="200m" --cpus="1" --restart=on-failure:10 --security-opt no-new-privileges -d -p {porta}:3000 wordpress')
-                                id_container = subprocess.check_output(f"docker ps -aqf \"name={id_container + valor}\"", shell=True)
-                                id_container = str(id_container).replace('b', '').replace('\\n', '').replace('\'', '')
-                                cursor.execute(f"INSERT INTO {id_site} VALUES ('{str(session['user'])}', '{id_container}', '{porta}', '{website_name}', 'true')")
-                                conn.commit()
-                                return jsonify({"status": "request accepted successfully"})
+                            id_container = check_id(); porta = check_ports()
+                            if not porta == '1' and not porta == '2' and id_container != False:
+                                if create_website_commands(id_site, id_container, porta, website_name):
+                                    return jsonify({"status": "request accepted successfully"})
+                                else:
+                                    return jsonify({"error": "an error has occurred, please try again"})
                             else:
                                 if porta == '1':
                                     return jsonify({"error": "the back end did not find a valid port for your application after several attempts, please try again"}), 500
@@ -234,4 +248,4 @@ def bot_upload_files():
     else:
         return jsonify({"error": "the server was unable to communicate with the database"}), 500
 
-app.run(host='0.0.0.0', port=34, debug=True)
+app.run(host='0.0.0.0', port=80)
