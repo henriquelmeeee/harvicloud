@@ -33,12 +33,6 @@ try:
     conn = mysql.connect()
     cursor = conn.cursor()
 
-    cursor.execute("CREATE TABLE IF NOT EXISTS users (user text, password text, token text, plano text);")
-    cursor.execute("CREATE TABLE IF NOT EXISTS gitea (user text, id text, porta text, name text, online text)")
-    cursor.execute("CREATE TABLE IF NOT EXISTS nextcloud (user text, id text, porta text, name text, online text)")
-    cursor.execute("CREATE TABLE IF NOT EXISTS bots (user text, id text, name text, main_file text, online text)")
-    cursor.execute("CREATE TABLE IF NOT EXISTS valid_tokens (token text, user text)")
-
 except Exception as error:
     sql = False; print('---\nErro SQL: ' + str(error) + '\n---')
 
