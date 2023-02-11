@@ -317,5 +317,18 @@ def bot_upload_files():
     else:
         return jsonify({"error": "the server was unable to communicate with the database"}), 500
 
+maintenance = True
+
+@app.before_request
+def before_request():
+    method = request.method 
+    path = request.path 
+    if maintenance:
+        if not session.get("maintenance"):
+            if path == "/(pass)":
+                session["maintenance"] = "true"
+            else:
+                return 'Autentique-se primeiro!'
+
 started = datetime.now()
-app.run(host='0.0.0.0', port=80)
+app.run(host='0.0.0.0', port=9000)
